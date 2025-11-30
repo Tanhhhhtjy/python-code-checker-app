@@ -1,22 +1,8 @@
 package com.example.codechecker.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.darkColors
-import androidx.compose.material.lightColors
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-
-private val LightColorPalette = lightColors(
-    primary = androidx.compose.ui.graphics.Color(0xFF006A6B),
-    primaryVariant = androidx.compose.ui.graphics.Color(0xFF004F51),
-    secondary = androidx.compose.ui.graphics.Color(0xFF4A6363)
-)
-
-private val DarkColorPalette = darkColors(
-    primary = androidx.compose.ui.graphics.Color(0xFF4CDADB),
-    primaryVariant = androidx.compose.ui.graphics.Color(0xFF004F51),
-    secondary = androidx.compose.ui.graphics.Color(0xFFB1CCCB)
-)
 
 @Composable
 fun CodeCheckerTheme(
@@ -24,15 +10,14 @@ fun CodeCheckerTheme(
     content: @Composable () -> Unit
 ) {
     val colors = if (darkTheme) {
-        DarkColorPalette
+        DarkColorScheme // 使用 Color.kt 中的定义
     } else {
-        LightColorPalette
+        LightColorScheme // 使用 Color.kt 中的定义
     }
 
     MaterialTheme(
-        colors = colors,
+        colorScheme = colors, // 修复参数名称
         typography = Typography,
-        shapes = androidx.compose.material.Shapes,
         content = content
     )
 }

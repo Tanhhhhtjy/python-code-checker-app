@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -39,6 +40,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import com.example.codechecker.ui.screens.auth.AuthViewModel
+import com.example.codechecker.ui.screens.auth.LoginState
+import com.example.codechecker.domain.model.AuthState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,11 +51,16 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     viewModel: AuthViewModel = viewModel()
 ) {
-    val loginState = viewModel.loginState
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
-    
-    // 显示错误消息
+    //val snackbarHostState = remember { SnackbarHostState() }
+    //val coroutineScope = rememberCoroutineScope()
+    val loginState = remember { mutableStateOf(LoginState()) }
+    LaunchedEffect(viewModel.loginState) {
+        viewModel.loginState.collect { state ->
+            loginState.value = state
+        }
+    }
+
+    /* 显示错误消息
     LaunchedEffect(loginState.errorMessage) {
         loginState.errorMessage?.let { message ->
             coroutineScope.launch {
@@ -59,11 +68,11 @@ fun LoginScreen(
                 viewModel.clearError()
             }
         }
-    }
+    } */
     
-    Scaffold(
+    Scaffold/*(
         snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
+    )*/ { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -83,6 +92,16 @@ fun LoginScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // 显示错误消息
+                    if (!loginState.value.errorMessage.isNullOrEmpty()) {
+                        Text(
+                            text = loginState.value.errorMessage ?: "",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
                     // 标题
                     Text(
                         text = "CodeChecker",
@@ -102,7 +121,7 @@ fun LoginScreen(
                     
                     // 用户名输入
                     OutlinedTextField(
-                        value = loginState.username,
+                        value = loginState.value.username,
                         onValueChange = viewModel::updateLoginUsername,
                         label = { Text("用户名") },
                         leadingIcon = {
@@ -120,7 +139,7 @@ fun LoginScreen(
                     
                     // 密码输入
                     OutlinedTextField(
-                        value = loginState.password,
+                        value = loginState.value.password,
                         onValueChange = viewModel::updateLoginPassword,
                         label = { Text("密码") },
                         leadingIcon = {
@@ -142,16 +161,16 @@ fun LoginScreen(
                     // 登录按钮
                     Button(
                         onClick = {
-                            viewModel.login(loginState.username, loginState.password)
+                            viewModel.login(loginState.value.username, loginState.value.password)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        enabled = !loginState.isLoading && 
-                                 loginState.username.isNotBlank() && 
-                                 loginState.password.isNotBlank()
+                        enabled = !loginState.value.isLoading && 
+                                 loginState.value.username.isNotBlank() && 
+                                 loginState.value.password.isNotBlank()
                     ) {
-                        if (loginState.isLoading) {
+                        if (loginState.value.isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 color = MaterialTheme.colorScheme.onPrimary
