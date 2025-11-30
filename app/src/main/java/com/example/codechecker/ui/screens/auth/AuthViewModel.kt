@@ -119,7 +119,11 @@ class AuthViewModel : ViewModel() {
     }
     
     fun updateRegisterRole(role: UserRole) {
+        println("=== 角色更新调试 ===")
+        println("更新前角色: ${_registerState.value.role}")
         _registerState.value = _registerState.value.copy(role = role)
+        println("更新后角色: ${_registerState.value.role}")
+        println("=================")
     }
     
     fun clearLoginForm() {
@@ -128,6 +132,11 @@ class AuthViewModel : ViewModel() {
     
     fun clearRegisterForm() {
         _registerState.value = RegisterState()
+    }
+
+    // 更新注册错误消息
+    fun updateRegisterError(message: String) {
+        _registerState.value = _registerState.value.copy(errorMessage = message)
     }
     
     fun clearError() {
