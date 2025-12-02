@@ -17,6 +17,16 @@ android {
         targetSdk = 33
         versionCode = 1
         versionName = "1.0"
+
+        // 添加Room的Schema导出
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += mapOf(
+                    "room.schemaLocation" to "$projectDir/schemas",
+                    "room.incremental" to "true"
+                )
+            }
+        }
     }
 
     buildTypes {
@@ -36,6 +46,10 @@ android {
     
     kotlinOptions {
         jvmTarget = "11"
+        freeCompilerArgs = listOf(
+            "-Xjvm-default=all",  // 解决接口继承问题
+            "-opt-in=kotlin.RequiresOptIn"  // 解决实验性API问题
+        )
     }
     
     buildFeatures {
@@ -57,6 +71,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling:1.1.1")
     implementation("androidx.compose.ui:ui-tooling-preview:1.1.1")
     implementation("androidx.compose.ui:ui-graphics:1.1.1")
+    implementation("androidx.compose.material:material-icons-extended:1.1.1")
     implementation("androidx.compose.material3:material3:1.0.0")
 
     // Compose扩展（解决 viewModel() 和状态管理）
@@ -69,9 +84,21 @@ dependencies {
     // Kotlin标准库
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.6.10")
     
-    // Hilt（你的代码需要这个）
+    // Hilt
     implementation("com.google.dagger:hilt-android:2.38.1")
     kapt("com.google.dagger:hilt-compiler:2.38.1")
+
+    // Room Database (新增)
+    implementation("androidx.room:room-runtime:2.4.3")
+    implementation("androidx.room:room-ktx:2.4.3")
+    kapt("androidx.room:room-compiler:2.4.3")
+    
+    // DataStore (新增)
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation("androidx.datastore:datastore-preferences-core:1.0.0")
+    
+    // Coroutines (新增)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
     
     // 测试
     //testImplementation("junit:junit:4.13.2")

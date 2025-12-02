@@ -76,6 +76,13 @@ fun LoginScreen(
         }
     } */
 
+    // 监听登录成功
+    LaunchedEffect(loginState.value.loginSuccess) {
+        if (loginState.value.loginSuccess) {
+            onLoginSuccess()
+        }
+    }
+
     // 键盘控制器
     val focusManager = LocalFocusManager.current
     

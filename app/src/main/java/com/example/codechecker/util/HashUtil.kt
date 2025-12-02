@@ -1,14 +1,13 @@
 package com.example.codechecker.util
 
 import java.security.MessageDigest
+import javax.inject.Inject
 
-object HashUtil {
-    fun sha256(input: String): String {
-        val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
-        return bytes.joinToString("") { "%02x".format(it) }
-    }
+class HashUtil @Inject constructor() {
     
-    fun validatePassword(input: String, storedHash: String): Boolean {
-        return sha256(input) == storedHash
+    fun hashPassword(password: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val hash = digest.digest(password.toByteArray())
+        return hash.joinToString("") { "%02x".format(it) }
     }
 }
