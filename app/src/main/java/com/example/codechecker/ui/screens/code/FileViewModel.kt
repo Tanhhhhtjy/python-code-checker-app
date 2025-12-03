@@ -75,15 +75,30 @@ class FileViewModel(
             
             result.fold(
                 onSuccess = { fileId ->
+                    // 获取刚上传的文件信息，检查是否被重命名
+                    val uploadedFile = codeFileRepository.getFileById(fileId)
+                    
+                    val originalFileName = fileName
+                    val systemFileName = uploadedFile?.fileName ?: fileName
+                    val finalDisplayName = displayName ?: fileName
+                    val wasRenamed = originalFileName != systemFileName
+                    
+                    val uploadInfo = UploadResultInfo(
+                        originalFileName = originalFileName,
+                        systemFileName = systemFileName,
+                        displayName = finalDisplayName,
+                        wasRenamed = wasRenamed
+                    )
+
                     _uiState.update { it.copy(
                         isUploading = false,
                         lastUploadedFileId = fileId,
                         showUploadSuccess = true
                     ) }
                     
-                    // 3秒后隐藏成功消息
+                    // 5秒后隐藏成功消息
                     viewModelScope.launch {
-                        kotlinx.coroutines.delay(3000)
+                        kotlinx.coroutines.delay(5000)
                         _uiState.update { it.copy(showUploadSuccess = false) }
                     }
                 },
@@ -186,5 +201,13 @@ data class FileUiState(
     val showDeleteSuccess: Boolean = false,
     val error: String? = null,
     val searchResults: List<CodeFile> = emptyList(),
-    val plagiarismHistory: List<Any> = emptyList()
+    val plagiarismHistory: List<Any> = emptyList(),
+    val uploadResultInfo: UploadResultInfo? = null
+)
+
+data class UploadResultInfo(
+    val originalFileName: String,      // 用户输入的文件名
+    val systemFileName: String,        // 系统实际保存的文件名
+    val displayName: String,           // 显示名称
+    val wasRenamed: Boolean = false    // 是否被重命名了
 )

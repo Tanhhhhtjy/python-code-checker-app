@@ -8,9 +8,11 @@ import com.example.codechecker.data.repository.UserRepository
 import com.example.codechecker.data.manager.SessionManager
 import com.example.codechecker.domain.model.User
 import com.example.codechecker.domain.model.UserRole
+import com.example.codechecker.util.HashUtil
 import com.example.codechecker.CodeCheckerApp
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -39,10 +41,14 @@ class UserRepositoryImpl(
                 
                 // 2. 创建新用户（模拟生成ID）
                 val newId = System.currentTimeMillis() // 临时用时间戳作为ID
+                // 使用密码哈希工具
+                val hashUtil = HashUtil()
+                val hashedPassword = hashUtil.hashPassword(password)
+
                 val user = User(
                     id = newId,
                     username = username,
-                    passwordHash = password, // 简化处理，实际应存储哈希值
+                    passwordHash = hashedPassword, 
                     displayName = displayName,
                     role = role,
                     createdAt = System.currentTimeMillis()
@@ -67,10 +73,16 @@ class UserRepositoryImpl(
                 if (userEntity == null) {
                     return@withContext Result.failure(Exception("用户不存在"))
                 }
+
+                // 使用密码哈希工具
+                val hashUtil = HashUtil()
+                val hashedPassword = hashUtil.hashPassword(password)
                 
-                // 2. 简单的密码验证（实际应该用Hash验证）
-                // 这里为了简单，假设所有用户密码都是"123456"
-                if (password != "123456") {
+                // 2. 密码验证
+                // 兼容旧密码逻辑：如果密码是"123456"且数据库中是明文"123456"
+                if (password == "123456" && userEntity.passwordHash == "123456") {
+                    // 允许登录
+                } else if (hashedPassword != userEntity.passwordHash) {
                     return@withContext Result.failure(Exception("密码错误"))
                 }
                 
@@ -107,7 +119,29 @@ class UserRepositoryImpl(
         oldPassword: String, 
         newPassword: String
     ): Result<Unit> {
-        return Result.failure(Exception("未实现"))
+        return withContext(ioDispatcher) {
+            try {
+                // 1. 获取当前用户
+                val currentUser = userDao.getCurrentUserStream().firstOrNull() ?: return@withContext Result.failure(Exception("用户未登录"))
+                
+                // 2. 验证旧密码
+                val hashUtil = HashUtil()
+                val hashedOldPassword = hashUtil.hashPassword(oldPassword)
+                
+                if (hashedOldPassword != currentUser.passwordHash) {
+                    return@withContext Result.failure(Exception("旧密码错误"))
+                }
+                
+                // 3. 哈希新密码并更新
+                val hashedNewPassword = hashUtil.hashPassword(newPassword)
+                val updatedUser = currentUser.copy(passwordHash = hashedNewPassword)
+                userDao.updateUser(updatedUser)
+                
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
     }
     
     override suspend fun deleteAccount(): Result<Unit> {

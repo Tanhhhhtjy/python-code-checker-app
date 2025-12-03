@@ -34,6 +34,14 @@ interface CodeFileDao {
     // 搜索文件
     @Query("SELECT * FROM code_files WHERE user_id = :userId AND (file_name LIKE '%' || :query || '%' OR display_name LIKE '%' || :query || '%') AND is_deleted = 0")
     suspend fun searchFiles(userId: Long, query: String): List<CodeFileEntity>
+
+    // 添加：检查用户是否有同名文件
+    @Query("SELECT COUNT(*) FROM code_files WHERE user_id = :userId AND file_name = :fileName AND is_deleted = 0")
+    suspend fun countFilesByName(userId: Long, fileName: String): Int
+    
+    // 添加：根据文件名模式搜索文件
+    @Query("SELECT * FROM code_files WHERE user_id = :userId AND file_name LIKE :pattern AND is_deleted = 0")
+    suspend fun findFilesByPattern(userId: Long, pattern: String): List<CodeFileEntity>
     
     // 清理已删除的文件（可选）
     @Query("DELETE FROM code_files WHERE is_deleted = 1")

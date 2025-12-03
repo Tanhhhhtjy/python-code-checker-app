@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.*
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -47,9 +48,11 @@ fun CodeUploadScreen(
     val fileNameFocusRequester = remember { FocusRequester() }
     var isFileNameFocused by remember { mutableStateOf(false) }
     
+    // 监听上传成功，显示重命名信息
+    val uploadInfo = uiState.value.uploadResultInfo
+    
     Scaffold(
         topBar = {
-            // 添加顶部导航栏
             TopAppBar(
                 title = { Text("上传代码") },
                 navigationIcon = {
@@ -68,10 +71,7 @@ fun CodeUploadScreen(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() }
                 ) {
-                    // 点击空白处收起键盘
                     focusManager.clearFocus()
-
-                    // 文件名输入框失去焦点时自动添加.py后缀
                     if (!isFileNameFocused && fileName.isNotBlank() && !fileName.endsWith(".py", ignoreCase = true)) {
                         fileName += ".py"
                     }
@@ -81,7 +81,7 @@ fun CodeUploadScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp)
-                    .verticalScroll(rememberScrollState()), // 添加滚动支持
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // 标题
@@ -100,54 +100,108 @@ fun CodeUploadScreen(
                     )
                 }
                 
-                // 成功提示
-                if (uiState.value.showUploadSuccess) {
+                // 上传成功提示（包含重命名信息）
+                if (uiState.value.showUploadSuccess && uploadInfo != null) {
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier.padding(16.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Upload,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("文件上传成功！")
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Upload,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "文件上传成功！",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            // 显示上传详细信息
+                            Column {
+                                Text(
+                                    text = "显示名称: ${uploadInfo.displayName}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                
+                                if (uploadInfo.wasRenamed) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "⚠️ 文件名已自动重命名",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                    Text(
+                                        text = "输入: ${uploadInfo.originalFileName}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                    Text(
+                                        text = "保存为: ${uploadInfo.systemFileName}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "文件名: ${uploadInfo.systemFileName}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                }
+                            }
                         }
                     }
                 }
                 
-                // 文件名输入
-                OutlinedTextField(
-                    value = fileName,
-                    onValueChange = { fileName = it },
-                    label = { Text("文件名（例如：main.py）") },
-                    leadingIcon = {
-                        Icon(Icons.Default.Description, contentDescription = null)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(fileNameFocusRequester)
-                        .onFocusChanged { focusState ->
-                            isFileNameFocused = focusState.isFocused
-                            // 当失去焦点且文件名不为空且没有.py后缀时，自动添加
-                            if (!focusState.isFocused && fileName.isNotBlank() && 
-                                !fileName.endsWith(".py", ignoreCase = true)) {
-                                fileName += ".py"
-                            }
+                // 文件名输入 - 添加重名提示
+                Column {
+                    OutlinedTextField(
+                        value = fileName,
+                        onValueChange = { fileName = it },
+                        label = { Text("文件名（例如：main.py）") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Description, contentDescription = null)
                         },
-                    singleLine = true,
-                    placeholder = { Text("输入.py文件名") },
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        keyboardType = KeyboardType.Text
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(fileNameFocusRequester)
+                            .onFocusChanged { focusState ->
+                                isFileNameFocused = focusState.isFocused
+                                if (!focusState.isFocused && fileName.isNotBlank() && 
+                                    !fileName.endsWith(".py", ignoreCase = true)) {
+                                    fileName += ".py"
+                                }
+                            },
+                        singleLine = true,
+                        placeholder = { Text("输入.py文件名") },
+                        keyboardOptions = KeyboardOptions.Default.copy(
+                            keyboardType = KeyboardType.Text
+                        )
                     )
-                )
+                    
+                    // 添加文件名提示
+                    if (fileName.isNotBlank() && !fileName.endsWith(".py", ignoreCase = true)) {
+                        Text(
+                            text = "提示：将自动添加 .py 后缀",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                        )
+                    }
+                }
                 
                 // 显示名称输入
                 OutlinedTextField(
@@ -159,7 +213,13 @@ fun CodeUploadScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    placeholder = { Text("用于显示的友好名称") },
+                    placeholder = { 
+                        Text(
+                            if (fileName.isNotBlank()) 
+                                "如不填写，将使用: ${fileName.substringBeforeLast(".")}" 
+                            else "用于显示的友好名称"
+                        )
+                    },
                     keyboardOptions = KeyboardOptions.Default.copy(
                         keyboardType = KeyboardType.Text
                     )
@@ -200,57 +260,102 @@ fun CodeUploadScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // 上传按钮
-                Button(
-                    onClick = {
-                        // 收起键盘
-                        focusManager.clearFocus()
-                        
-                        if (fileName.isBlank() || codeContent.isBlank()) {
-                            return@Button
-                        }
-                        
-                        // 确保文件名以.py结尾
-                        val finalFileName = if (!fileName.endsWith(".py", ignoreCase = true)) {
-                            "$fileName.py"
-                        } else {
-                            fileName
-                        }
-                        
-                        viewModel.uploadFile(
-                            fileName = finalFileName,
-                            codeContent = codeContent,
-                            displayName = if (displayName.isBlank()) null else displayName
-                        )
-                        
-                        // 清空表单（可选）
-                        fileName = ""
-                        displayName = ""
-                        codeContent = ""
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    enabled = !uiState.value.isUploading &&
-                             fileName.isNotBlank() &&
-                             codeContent.isNotBlank()
+                // 上传按钮 - 添加重名提示
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (uiState.value.isUploading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Icon(Icons.Default.Upload, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("上传代码")
+                    if (fileName.isNotBlank()) {
+                        // 显示文件名预览
+                        val finalDisplayName = if (displayName.isBlank()) {
+                            fileName.substringBeforeLast(".")
+                        } else {
+                            displayName
+                        }
+                        
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp)
+                            ) {
+                                Text(
+                                    text = "上传预览",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                Text(
+                                    text = "显示名称: $finalDisplayName",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = "系统将自动检查重名并处理",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                            }
+                        }
+                    }
+                    
+                    Button(
+                        onClick = {
+                            focusManager.clearFocus()
+                            
+                            if (fileName.isBlank() || codeContent.isBlank()) {
+                                return@Button
+                            }
+                            
+                            // 确保文件名以.py结尾
+                            val finalFileName = if (!fileName.endsWith(".py", ignoreCase = true)) {
+                                "$fileName.py"
+                            } else {
+                                fileName
+                            }
+                            
+                            // 设置显示名称（如果用户没输入，使用文件名去掉后缀）
+                            val finalDisplayName = if (displayName.isBlank()) {
+                                finalFileName.substringBeforeLast(".")
+                            } else {
+                                displayName
+                            }
+                            
+                            viewModel.uploadFile(
+                                fileName = finalFileName,
+                                codeContent = codeContent,
+                                displayName = finalDisplayName
+                            )
+                            
+                            // 清空表单
+                            fileName = ""
+                            displayName = ""
+                            codeContent = ""
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        enabled = !uiState.value.isUploading &&
+                                 fileName.isNotBlank() &&
+                                 codeContent.isNotBlank()
+                    ) {
+                        if (uiState.value.isUploading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Icon(Icons.Default.Upload, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("上传代码")
+                        }
                     }
                 }
                 
                 // 监听上传成功
                 LaunchedEffect(uiState.value.showUploadSuccess) {
                     if (uiState.value.showUploadSuccess) {
-                        // 延迟执行成功回调
+                        // 延迟执行成功回调，给用户时间看清重命名信息
                         kotlinx.coroutines.delay(1500)
                         onUploadSuccess()
                     }

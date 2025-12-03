@@ -26,6 +26,9 @@ class CodeFileRepositoryImpl(
             if (codeContent.isBlank()) {
                 return@withContext Result.failure(IllegalArgumentException("代码内容不能为空"))
             }
+
+            // 生成唯一文件名（自动重命名逻辑）
+            val uniqueFileName = generateUniqueFileName(userId, fileName)
             
             // 计算文件信息
             val lines = codeContent.lines()
@@ -35,7 +38,7 @@ class CodeFileRepositoryImpl(
             // 创建实体
             val entity = CodeFileEntity(
                 userId = userId,
-                fileName = fileName,
+                fileName = uniqueFileName,
                 displayName = displayName ?: fileName,
                 codeContent = codeContent,
                 fileSize = fileSize,
@@ -78,6 +81,56 @@ class CodeFileRepositoryImpl(
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * 生成唯一文件名，避免用户文件重名
+     * 规则：如果重名，添加序号：file(1).py, file(2).py
+     */
+    private suspend fun generateUniqueFileName(userId: Long, originalFileName: String): String {
+        // 检查是否已有同名文件
+        val count = codeFileDao.countFilesByName(userId, originalFileName)
+        
+        // 如果没有重名，直接返回原文件名
+        if (count == 0) {
+            return originalFileName
+        }
+        
+        // 分离文件名和扩展名
+        val (nameWithoutExt, extension) = splitFileName(originalFileName)
+        val ext = if (extension.isNotEmpty()) ".$extension" else ""
+        
+        // 查找已有的带序号的文件
+        val existingFiles = codeFileDao.findFilesByPattern(userId, "$nameWithoutExt(*)$ext")
+        
+        // 找出已使用的序号
+        val usedNumbers = mutableSetOf<Int>()
+        val pattern = Regex("""$nameWithoutExt\((\d+)\)$ext""")
+        
+        existingFiles.forEach { file ->
+            val match = pattern.find(file.fileName)
+            match?.groupValues?.get(1)?.toIntOrNull()?.let { usedNumbers.add(it) }
+        }
+        
+        // 找到第一个可用的序号
+        var number = 1
+        while (usedNumbers.contains(number)) {
+            number++
+        }
+        
+        return "$nameWithoutExt($number)$ext"
+    }
+
+    // 分离文件名和扩展名
+    private fun splitFileName(fileName: String): Pair<String, String> {
+        val dotIndex = fileName.lastIndexOf('.')
+        return if (dotIndex > 0) {
+            val name = fileName.substring(0, dotIndex)
+            val ext = fileName.substring(dotIndex + 1)
+            Pair(name, ext)
+        } else {
+            Pair(fileName, "")
         }
     }
     
