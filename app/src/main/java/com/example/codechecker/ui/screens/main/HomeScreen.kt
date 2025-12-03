@@ -2,6 +2,7 @@ package com.example.codechecker.ui.screens.main
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -30,6 +31,14 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("首页") },
                 actions = {
+                    IconButton(onClick = onNavigateToProfile) {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = "个人资料",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
                     Button(
                         onClick = onLogout,
                         colors = ButtonDefaults.buttonColors(
@@ -49,7 +58,7 @@ fun HomeScreen(
                 .padding(paddingValues)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.Top
         ) {
             Text(
                 text = "欢迎使用 CodeChecker",
@@ -60,7 +69,10 @@ fun HomeScreen(
             // 显示用户信息
             val currentSession = mainViewModel.appState.value.currentSession
             currentSession?.let { session ->
-                UserInfoCard(session = session)
+                UserInfoCard(
+                    session = session,
+                    onProfileClick = onNavigateToProfile  // 点击用户信息也可进入个人资料
+                )
             }
             
             // 功能卡片网格
@@ -68,7 +80,9 @@ fun HomeScreen(
                 text = "功能列表",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, bottom = 16.dp)
             )
             
             // 功能网格布局
@@ -155,9 +169,14 @@ fun HomeScreen(
 }
 
 @Composable
-fun UserInfoCard(session: Session) {
+fun UserInfoCard(
+    session: Session,
+    onProfileClick: () -> Unit
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onProfileClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -171,6 +190,13 @@ fun UserInfoCard(session: Session) {
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            // 个人资料图标提示
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = "查看详情",
+                tint = MaterialTheme.colorScheme.primary
             )
             
             InfoRow(label = "用户名:", value = session.username)
@@ -224,7 +250,9 @@ fun FunctionCard(
     containerColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surface
 ) {
     Card(
-        modifier = modifier,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(150.dp),
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),

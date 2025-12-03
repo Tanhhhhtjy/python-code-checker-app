@@ -13,31 +13,15 @@ import com.example.codechecker.domain.model.AuthState
 import com.example.codechecker.util.HashUtil
 import com.example.codechecker.CodeCheckerApp
 import com.example.codechecker.data.manager.SessionManager
+import com.example.codechecker.data.repository.UserRepository
+import javax.inject.Inject
 
-class AuthViewModel : ViewModel() {
+class AuthViewModel @Inject constructor(
+    private val userRepository: UserRepository  
+) : ViewModel() {
     
     // 添加SessionManager
     private val sessionManager = CodeCheckerApp.sessionManager
-
-    // 模拟用户数据 - 实际项目中应该从数据库获取
-    private val _mockUsers = mutableListOf(
-        User(
-            id = 1,
-            username = "student1",
-            displayName = "张三",
-            role = UserRole.STUDENT,
-            createdAt = System.currentTimeMillis()
-        ),
-        User(
-            id = 2,
-            username = "teacher1",
-            displayName = "李老师",
-            role = UserRole.TEACHER,
-            createdAt = System.currentTimeMillis()
-        )
-    )
-
-    val mockUsers: List<User> = _mockUsers
     
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
@@ -52,14 +36,10 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             _loginState.value = _loginState.value.copy(isLoading = true)
+
+            val result = userRepository.loginUser(username, password)
             
-            // 模拟网络请求延迟
-            kotlinx.coroutines.delay(1000)
-            
-            // 简单的认证逻辑 - 实际项目中应该查询数据库
-            val user = _mockUsers.find { it.username == username }
-            
-            if (user != null && password == "123456") { // 简单密码验证
+            result.onSuccess { user ->
                 // 保存用户会话到DataStore
                 sessionManager.saveSession(
                     userId = user.id,
@@ -67,18 +47,18 @@ class AuthViewModel : ViewModel() {
                     displayName = user.displayName,
                     role = user.role.name
                 )
-
+                
                 _authState.value = AuthState.Authenticated(user)
                 _loginState.value = LoginState(
                     isLoading = false,
                     errorMessage = null,
                     loginSuccess = true
                 )
-            } else {
-                _authState.value = AuthState.Error("用户名或密码错误")
+            }.onFailure { exception ->
+                _authState.value = AuthState.Error(exception.message ?: "登录失败")
                 _loginState.value = _loginState.value.copy(
                     isLoading = false,
-                    errorMessage = "用户名或密码错误"
+                    errorMessage = exception.message ?: "登录失败"
                 )
             }
         }
@@ -87,48 +67,47 @@ class AuthViewModel : ViewModel() {
     fun register(username: String, password: String, displayName: String, role: UserRole) {
         viewModelScope.launch {
             _registerState.value = _registerState.value.copy(isLoading = true)
+
+            val result = userRepository.registerUser(
+                username = username,
+                password = password,
+                displayName = displayName,
+                role = role
+            )
             
-            // 模拟网络请求延迟
-            kotlinx.coroutines.delay(1000)
-            
-            // 检查用户名是否已存在
-            if (_mockUsers.any { it.username == username }) {
+            result.onSuccess { userId ->
+                // 注册成功后，模拟注册的用户自动登录
+                val loginResult = userRepository.loginUser(username, password) 
+                
+                loginResult.onSuccess { user ->
+                    // 保存会话
+                    sessionManager.saveSession(
+                        userId = user.id,
+                        username = user.username,
+                        displayName = user.displayName,
+                        role = user.role.name
+                    )
+                    
+                    _registerState.value = _registerState.value.copy(
+                        isLoading = false,
+                        isSuccess = true,
+                        errorMessage = null
+                    )
+                    _authState.value = AuthState.Authenticated(user)
+                    
+                }.onFailure { loginException ->
+                    _registerState.value = _registerState.value.copy(
+                        isLoading = false,
+                        errorMessage = "注册成功但自动登录失败: ${loginException.message}"
+                    )
+                }
+                
+            }.onFailure { exception ->
                 _registerState.value = _registerState.value.copy(
                     isLoading = false,
-                    errorMessage = "用户名已存在"
+                    errorMessage = exception.message ?: "注册失败"
                 )
-                return@launch
             }
-
-            // 模拟创建用户
-            val newUser = User(
-                id = (mockUsers.size + 1).toLong(),
-                username = username,
-                displayName = displayName,
-                role = role,
-                createdAt = System.currentTimeMillis()
-            )
-
-            // 保存用户会话
-            sessionManager.saveSession(
-                userId = newUser.id,
-                username = newUser.username,
-                displayName = newUser.displayName,
-                role = newUser.role.name
-            )
-
-            // 注册成功 - 延迟一下确保DataStore保存完成
-            kotlinx.coroutines.delay(300)
-            
-            // 注册成功
-            _registerState.value = _registerState.value.copy(
-                isLoading = false,
-                isSuccess = true,
-                errorMessage = null
-            )
-
-            // 设置认证状态
-            _authState.value = AuthState.Authenticated(newUser)
         }
     }
     
@@ -142,22 +121,32 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-     // 新增：检查登录状态
+     // 检查登录状态
      fun checkLoginStatus() {
         viewModelScope.launch {
-            val isLoggedIn = sessionManager.isLoggedInFlow.firstOrNull() ?: false
-            if (isLoggedIn) {
-                // 如果已登录，可以获取用户信息并更新状态
-                // 这里暂时只更新状态为已登录
-                _authState.value = AuthState.Authenticated(
-                    User(
-                        id = 0,
-                        username = "已登录用户",
-                        displayName = "用户",
-                        role = UserRole.STUDENT,
-                        createdAt = System.currentTimeMillis()
-                    )
-                )
+            try {
+                // 检查是否登录
+                val isLoggedIn = sessionManager.isLoggedInFlow.firstOrNull() ?: false
+                
+                if (isLoggedIn) {
+                    val currentSession = sessionManager.getCurrentSession() 
+                    
+                    currentSession?.let { session ->
+                        val user = userRepository.getUserById(session.userId)
+                        
+                        user?.let { foundUser ->
+                            _authState.value = AuthState.Authenticated(foundUser)
+                        } ?: run {
+                            _authState.value = AuthState.Unauthenticated
+                        }
+                    } ?: run {
+                        _authState.value = AuthState.Unauthenticated
+                    }
+                } else {
+                    _authState.value = AuthState.Unauthenticated
+                }
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error("检查登录状态时出错: ${e.message}")
             }
         }
     }

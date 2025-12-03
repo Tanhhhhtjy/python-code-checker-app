@@ -9,7 +9,7 @@ interface UserDao {
     
     // 插入操作
     @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insert(user: UserEntity): Long
+    suspend fun insert(user: UserEntity)
     
     // 查询操作
     @Query("SELECT * FROM users WHERE id = :userId")
@@ -17,6 +17,9 @@ interface UserDao {
     
     @Query("SELECT * FROM users WHERE username = :username")
     suspend fun getUserByUsername(username: String): UserEntity?
+
+    @Query("SELECT * FROM users WHERE is_current = 1 LIMIT 1")
+    fun getCurrentUserStream(): Flow<UserEntity?>
     
     // 存在性检查
     @Query("SELECT COUNT(*) FROM users WHERE username = :username")
@@ -35,6 +38,15 @@ interface UserDao {
     
     @Query("SELECT * FROM users WHERE role = 'TEACHER' ORDER BY display_name ASC")
     fun getAllTeachers(): Flow<List<UserEntity>>
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdate(user: UserEntity)
+    
+    @Query("UPDATE users SET is_current = 0")
+    suspend fun clearCurrentUser()
+    
+    @Query("UPDATE users SET is_current = 1 WHERE id = :userId")
+    suspend fun setCurrentUser(userId: Long)
     
     // 删除操作（通常不使用，仅用于测试）
     @Delete

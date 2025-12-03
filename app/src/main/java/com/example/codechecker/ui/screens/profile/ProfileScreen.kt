@@ -1,6 +1,7 @@
 package com.example.codechecker.ui.screens.profile
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -13,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.codechecker.ui.screens.main.MainViewModel
 import kotlinx.coroutines.launch
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,8 +28,20 @@ fun ProfileScreen(
     val coroutineScope = rememberCoroutineScope()
     
     if (currentSession == null) {
-        // 如果没有登录信息，返回
-        onNavigateBack()
+        // 如果没有登录信息，显示加载或错误状态
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            CircularProgressIndicator()
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("加载中...")
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onNavigateBack) {
+                Text("返回")
+            }
+        }
         return
     }
     
@@ -79,12 +93,6 @@ fun ProfileScreen(
                         label = "角色",
                         value = if (isTeacher) "教师" else "学生",
                         onClick = { /* 角色不可更改 */ }
-                    ),
-                    ProfileItem(
-                        icon = Icons.Default.Email,
-                        label = "邮箱",
-                        value = currentSession.email ?: "未设置",
-                        onClick = { /* TODO: 编辑邮箱 */ }
                     )
                 )
             )
@@ -203,9 +211,10 @@ fun ProfileScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileHeaderCard(
-    session: com.example.codechecker.domain.model.Session,
+    session: com.example.codechecker.data.model.Session,
     isTeacher: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -279,12 +288,12 @@ fun ProfileHeaderCard(
             Spacer(modifier = Modifier.height(8.dp))
             
             // 角色徽章
-            Chip(
+            AssistChip(
                 onClick = { },
                 label = { 
                     Text(if (isTeacher) "教师" else "学生") 
                 },
-                colors = ChipDefaults.chipColors(
+                colors = AssistChipDefaults.assistChipColors(
                     containerColor = if (isTeacher) 
                         MaterialTheme.colorScheme.primary 
                     else 

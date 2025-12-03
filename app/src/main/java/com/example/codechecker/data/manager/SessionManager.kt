@@ -52,6 +52,25 @@ class SessionManager(context: Context) {
             preferences[IS_LOGGED_IN_KEY] = false
         }
     }
+
+    suspend fun getCurrentSession(): Session? {
+        return dataStore.data
+            .catch { _ -> emit(emptyPreferences()) }
+            .map { preferences ->
+                val userId = preferences[USER_ID_KEY]
+                val username = preferences[USERNAME_KEY]
+                val displayName = preferences[DISPLAY_NAME_KEY]
+                val role = preferences[USER_ROLE_KEY]
+                val isLoggedIn = preferences[IS_LOGGED_IN_KEY] ?: false
+                
+                if (userId != null && username != null && displayName != null && role != null && isLoggedIn) {
+                    Session(userId, username, displayName, role, isLoggedIn)
+                } else {
+                    null
+                }
+            }
+            .firstOrNull()
+    }
     
     // 获取当前会话
     val sessionFlow: Flow<Session?> = dataStore.data

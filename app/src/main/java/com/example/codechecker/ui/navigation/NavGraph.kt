@@ -1,8 +1,13 @@
 package com.example.codechecker.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -16,6 +21,7 @@ import com.example.codechecker.ui.screens.code.FileViewModelFactory
 import com.example.codechecker.ui.screens.code.FileDetailScreen
 import com.example.codechecker.ui.screens.main.HomeScreen
 import com.example.codechecker.ui.screens.main.MainViewModel
+import com.example.codechecker.ui.screens.profile.ProfileScreen
 import com.example.codechecker.CodeCheckerApp
 
 @Composable
@@ -163,8 +169,42 @@ fun NavGraph() {
 
         // 个人中心页面（稍后实现）
         composable("profile") {
-            // 个人中心页面
-            androidx.compose.material3.Text("个人中心 - 开发中")
+            ProfileScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onLogout = {
+                    mainViewModel.logout()
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                },
+                onNavigateToChangePassword = {
+                    navController.navigate("change_password")
+                },
+                mainViewModel = mainViewModel
+            )
+        }
+
+        // 修改密码页面（占位）
+        composable("change_password") {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "修改密码功能开发中",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                Button(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier.padding(top = 16.dp)
+                ) {
+                    Text("返回")
+                }
+            }
         }
 
         // 查重首页（稍后实现）

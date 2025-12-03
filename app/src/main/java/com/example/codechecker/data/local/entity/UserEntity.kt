@@ -31,8 +31,8 @@ data class UserEntity(
     @ColumnInfo(name = "last_login_at")
     val lastLoginAt: Date? = null,
     
-    @ColumnInfo(name = "is_active")
-    val isActive: Boolean = true
+    @ColumnInfo(name = "is_current")
+    val isCurrent: Boolean = true
 ) {
     companion object {
         fun createStudent(

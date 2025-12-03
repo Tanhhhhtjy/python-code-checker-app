@@ -6,6 +6,7 @@ data class User(
     val id: Long = 0,
     val username: String,
     val displayName: String,
+    val passwordHash: String,
     val role: UserRole,
     val createdAt: Long,
     val lastLoginAt: Date? = null
