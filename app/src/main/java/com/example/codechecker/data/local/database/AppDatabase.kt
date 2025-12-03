@@ -15,7 +15,7 @@ import com.example.codechecker.data.local.entity.CodeFileEntity
         UserEntity::class,
         CodeFileEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(DateConverters::class)

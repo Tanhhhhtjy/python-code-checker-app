@@ -87,6 +87,7 @@ dependencies {
     // Hilt
     implementation("com.google.dagger:hilt-android:2.38.1")
     kapt("com.google.dagger:hilt-compiler:2.38.1")
+    implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
 
     // Room Database (新增)
     implementation("androidx.room:room-runtime:2.4.3")
@@ -99,6 +100,9 @@ dependencies {
     
     // Coroutines (新增)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+
+    // Lifecycle ViewModel KTX
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1")
     
     // 测试
     //testImplementation("junit:junit:4.13.2")

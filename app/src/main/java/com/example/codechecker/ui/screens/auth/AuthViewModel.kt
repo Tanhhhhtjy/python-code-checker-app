@@ -14,14 +14,12 @@ import com.example.codechecker.util.HashUtil
 import com.example.codechecker.CodeCheckerApp
 import com.example.codechecker.data.manager.SessionManager
 import com.example.codechecker.data.repository.UserRepository
-import javax.inject.Inject
 
-class AuthViewModel @Inject constructor(
-    private val userRepository: UserRepository  
-) : ViewModel() {
+class AuthViewModel() : ViewModel() {
     
     // 添加SessionManager
     private val sessionManager = CodeCheckerApp.sessionManager
+    private val userRepository = CodeCheckerApp.userRepository
     
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
